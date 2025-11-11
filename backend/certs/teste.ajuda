@@ -1,0 +1,8 @@
+para conectar ao banco:
+
+1- Colar esse comando no terminal:
+        mariadb --host serverless-us-east1.sysp0000.db2.skysql.com 
+        --port 4008 --user dbpgf08754999 -p --ssl-verify-server-cert
+
+2 - SENHA: rjTkR-83b3g6s?a5rdq0F
+
