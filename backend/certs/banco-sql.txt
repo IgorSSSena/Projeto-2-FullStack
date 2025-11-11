@@ -1,0 +1,184 @@
+-- ============================================================
+-- GAMESCOPE: Banco de dados para avaliações de jogos (MariaDB)
+-- ============================================================
+
+-- 0) Database
+CREATE DATABASE IF NOT EXISTS gamescope
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+USE gamescope;
+
+-- 1) Users (conta + perfil)
+CREATE TABLE users (
+  id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  email           VARCHAR(255) NOT NULL,
+  password_hash   VARCHAR(255) NOT NULL,
+  name            VARCHAR(120) NOT NULL,
+  avatar_url      VARCHAR(512) NULL,
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT uq_users_email UNIQUE (email)
+) ENGINE=InnoDB;
+
+-- 2) Tokens de sessão (para refresh/blacklist, se usar JWT)
+CREATE TABLE auth_tokens (
+  id            BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id       BIGINT UNSIGNED NOT NULL,
+  token_hash    VARCHAR(255) NOT NULL,        -- hash do refresh token (NUNCA armazenar token puro)
+  expires_at    DATETIME NOT NULL,
+  revoked_at    DATETIME NULL,
+  ip_address    VARCHAR(45) NULL,             -- IPv4/IPv6 textual
+  user_agent    TEXT NULL,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_auth_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_auth_user (user_id),
+  INDEX idx_auth_valid (user_id, expires_at)
+) ENGINE=InnoDB;
+
+-- 3) Amizades (grafo não-direcionado com status)
+--    Regra: sempre gravar com user_a_id < user_b_id para evitar duplicidade.
+CREATE TABLE friendships (
+  id            BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_a_id     BIGINT UNSIGNED NOT NULL,
+  user_b_id     BIGINT UNSIGNED NOT NULL,
+  status        ENUM('pending','accepted','declined','blocked') NOT NULL DEFAULT 'pending',
+  requested_by  BIGINT UNSIGNED NOT NULL,   -- quem iniciou o pedido
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT chk_order CHECK (user_a_id < user_b_id),
+  CONSTRAINT uq_pair UNIQUE (user_a_id, user_b_id),
+  CONSTRAINT fk_friend_a FOREIGN KEY (user_a_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_friend_b FOREIGN KEY (user_b_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_friend_requested_by FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_status (status, updated_at)
+) ENGINE=InnoDB;
+
+-- 3.1) View para facilitar consultas de amizades (bidirecional)
+CREATE OR REPLACE VIEW v_friends AS
+  SELECT user_a_id AS user_id, user_b_id AS friend_id
+    FROM friendships WHERE status = 'accepted'
+  UNION ALL
+  SELECT user_b_id AS user_id, user_a_id AS friend_id
+    FROM friendships WHERE status = 'accepted';
+
+-- 4) Avaliações de jogos
+--    rawg_game_id: ID do jogo na RAWG (int). Mantemos snapshot de nome/slug para exibição rápida.
+CREATE TABLE reviews (
+  id               BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id          BIGINT UNSIGNED NOT NULL,
+  rawg_game_id     INT UNSIGNED NOT NULL,
+  rawg_game_slug   VARCHAR(255) NULL,
+  rawg_game_name   VARCHAR(255) NULL,
+  rating           TINYINT UNSIGNED NOT NULL,   -- 0..10
+  description      TEXT NOT NULL,               -- descrição obrigatória da nota atribuída
+  comment          TEXT NULL,                   -- comentário opcional adicional
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_reviews_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT uq_user_game UNIQUE (user_id, rawg_game_id),
+  CONSTRAINT chk_rating_range CHECK (rating BETWEEN 0 AND 10),
+  INDEX idx_game (rawg_game_id),
+  INDEX idx_user (user_id, created_at)
+) ENGINE=InnoDB;
+
+-- 5) Logs (auditoria mínima: logins, buscas, postagens)
+CREATE TABLE audit_logs (
+  id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id     BIGINT UNSIGNED NULL,        -- pode ser NULL para eventos anônimos (ex.: tentativa de login)
+  action      VARCHAR(50) NOT NULL,        -- ex.: LOGIN_SUCCESS, LOGIN_FAILURE, REVIEW_CREATE, SEARCH
+  details     JSON NULL,                   -- payload adicional (cuidado para não guardar PII sensível)
+  ip_address  VARCHAR(45) NULL,
+  user_agent  TEXT NULL,
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_logs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_action_time (action, created_at),
+  INDEX idx_user_time (user_id, created_at)
+) ENGINE=InnoDB;
+
+-- 6) (Opcional) Cache leve de jogos para reduzir chamadas RAWG em páginas muito acessadas
+--    Use com política de expiração no back-end (ex.: 24h).
+CREATE TABLE game_cache (
+  rawg_game_id  INT UNSIGNED NOT NULL PRIMARY KEY,
+  slug          VARCHAR(255) NULL,
+  name          VARCHAR(255) NULL,
+  payload       JSON NULL,                 -- resposta crua/sanitizada da RAWG (parcial)
+  fetched_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_fetched (fetched_at)
+) ENGINE=InnoDB;
+
+-- 7) “Cortes” úteis (views) para o front-end
+
+-- 7.1) Feed do usuário: as minhas reviews + dos meus amigos
+CREATE OR REPLACE VIEW v_user_feed AS
+  SELECT r.*
+  FROM reviews r
+  UNION ALL
+  SELECT r2.*
+  FROM reviews r2
+  JOIN v_friends vf ON vf.friend_id = r2.user_id;
+
+-- (Observação: para filtrar por um usuário específico na aplicação, faça WHERE user_id IN (...),
+--              ver exemplos no final.)
+
+-- 8) Sugestões de políticas e defaults
+--    - Considere definir sql_mode com STRICT_TRANS_TABLES.
+--    - Configure time_zone do servidor/banco conforme sua infra.
+
+
+
+
+
+
+
+
+CONSULTAS PARA TESTE?:
+
+-- A) Pegar perfil do usuário
+SELECT id, email, name, avatar_url, created_at FROM users WHERE id = ?;
+
+-- B) Criar pedido de amizade (normalizar a ordem do par no back-end antes de inserir):
+--    user_a_id = LEAST(user_id, friend_id), user_b_id = GREATEST(user_id, friend_id)
+INSERT INTO friendships (user_a_id, user_b_id, status, requested_by)
+VALUES (?, ?, 'pending', ?);
+
+-- C) Aceitar amizade
+UPDATE friendships
+   SET status = 'accepted'
+ WHERE user_a_id = ? AND user_b_id = ?;
+
+-- D) Inserir/atualizar avaliação (1 por jogo por usuário)
+INSERT INTO reviews (user_id, rawg_game_id, rawg_game_slug, rawg_game_name, rating, description, comment)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE
+  rating = VALUES(rating),
+  description = VALUES(description),
+  comment = VALUES(comment),
+  updated_at = CURRENT_TIMESTAMP;
+
+-- E) Minhas avaliações
+SELECT r.*
+  FROM reviews r
+ WHERE r.user_id = ?
+ ORDER BY r.created_at DESC;
+
+-- F) Feed (minhas + amigos)
+--    Use a VIEW e filtre via IN (meu id + ids dos amigos)
+SELECT r.*
+  FROM reviews r
+ WHERE r.user_id IN (
+   SELECT friend_id FROM v_friends WHERE user_id = ?
+   UNION ALL SELECT ?
+ )
+ ORDER BY r.created_at DESC;
+
+-- G) Top 10 jogos mais avaliados pelos meus amigos (por rawg_game_id)
+SELECT r.rawg_game_id, ANY_VALUE(r.rawg_game_name) AS name, COUNT(*) AS qtd_reviews, AVG(r.rating) AS media
+  FROM reviews r
+ WHERE r.user_id IN (SELECT friend_id FROM v_friends WHERE user_id = ?)
+ GROUP BY r.rawg_game_id
+ ORDER BY qtd_reviews DESC
+ LIMIT 10;
+
+-- H) Log de ação
+INSERT INTO audit_logs (user_id, action, details, ip_address, user_agent)
+VALUES (?, 'REVIEW_CREATE', JSON_OBJECT('rawg_game_id', ?, 'rating', ?, 'has_comment', ?), ?, ?);
