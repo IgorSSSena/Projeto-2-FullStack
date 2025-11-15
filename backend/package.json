@@ -1,6 +1,21 @@
 {
+  "name": "backend-new",
+  "version": "1.0.0",
+  "description": "Fullstack Project Backend for Games Reviews",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
   "dependencies": {
-    "dotenv": "^17.2.3",
-    "mariadb": "^3.4.5"
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "express-validator": "^6.14.3",
+    "jsonwebtoken": "^9.0.1",
+    "mongoose": "^7.0.0",
+    "morgan": "^1.10.0"
   }
 }
