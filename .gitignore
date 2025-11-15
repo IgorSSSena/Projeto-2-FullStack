@@ -1,0 +1,12 @@
+# Ignorar dependências Node.js
+node_modules/
+
+# Artefatos de build opcionais
+dist/
+build/
+
+# Arquivos de variáveis de ambiente
+.env
+
+# Metadados do macOS
+.DS_Store
