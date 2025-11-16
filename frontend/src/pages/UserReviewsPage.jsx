@@ -129,8 +129,8 @@ export default function UserReviewsPage() {
             sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
           >
             <div>
-              <Typography variant="h6">{rev.gameName}</Typography>
-              <Typography variant="body2">Nota: {rev.rating}</Typography>
+            <Typography variant="h6">{rev.rawg_game_name}</Typography>
+            <Typography variant="body2">Nota: {rev.rating}</Typography>
               <Typography variant="body2">{rev.description}</Typography>
               {rev.comment && (
                 <Typography variant="body2" sx={{ fontStyle: 'italic' }}>

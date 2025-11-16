@@ -41,13 +41,14 @@ export default function AddReviewDialog({ game, open, onClose, onSubmitted }) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          gameId: game.id,
-          gameSlug: game.slug || game.slug || null,
-          gameName: game.name,
+          rawg_game_id: game.id,
+          rawg_game_slug: game.slug,
+          rawg_game_name: game.name,
           rating,
           description,
           comment: comment || null,
         }),
+        
       });
       if (!res.ok) {
         const { message } = await res.json();
