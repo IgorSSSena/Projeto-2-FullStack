@@ -129,7 +129,7 @@ router.delete('/:id', auth, async (req, res) => {
   if (review.userId.toString() !== req.userId) {
     return res.status(403).json({ message: 'Acesso não autorizado' });
   }
-  await review.remove();
+  await review.deleteOne();
   return res.json({ message: 'Avaliação removida' });
 });
 

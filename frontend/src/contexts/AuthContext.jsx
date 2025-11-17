@@ -166,7 +166,7 @@ export function AuthProvider({ children }) {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.message || 'Falha ao atualizar perfil');
+      throw new Error(data.msg || 'Falha ao atualizar perfil');
     }
     // Atualiza o usuário no estado local para refletir eventuais mudanças de nome/email
     if (data.user) {

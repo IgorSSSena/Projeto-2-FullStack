@@ -72,7 +72,8 @@ export default function AddReviewDialog({ game, open, onClose, onSubmitted }) {
   };
 
   return (
-    <Dialog open={open} onClose={handleCancel} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleCancel} maxWidth="sm" fullWidth >
+      <div style={{backgroundColor: '#000'}}>
       <DialogTitle>Adicionar avaliação</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
@@ -87,7 +88,7 @@ export default function AddReviewDialog({ game, open, onClose, onSubmitted }) {
             max={10}
           />
           <TextField
-            label="Descrição"
+            label="Descreva sua experiência"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             multiline
@@ -120,6 +121,7 @@ export default function AddReviewDialog({ game, open, onClose, onSubmitted }) {
           Salvar
         </Button>
       </DialogActions>
+      </div>
     </Dialog>
   );
 }

@@ -114,13 +114,14 @@ export default function UserReviewsPage() {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Minhas Avaliações
+    <Container>
+          <Typography variant="h4" gutterBottom>
+        MINHAS AVALIAÇÕES
       </Typography>
       {loading && <Typography>Carregando...</Typography>}
       {error && <Typography color="error">{error}</Typography>}
       {!loading && reviews.length === 0 && <Typography>Nenhuma avaliação encontrada.</Typography>}
+    <Container maxWidth="md" sx={{ py: 4 }}>
       <Stack spacing={2}>
         {reviews.map((rev) => (
           <Paper
@@ -128,18 +129,20 @@ export default function UserReviewsPage() {
             variant="outlined"
             sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
           >
+
             <div>
-              <Typography variant="h6">{rev.gameName}</Typography>
-              <Typography variant="body2">Nota: {rev.rating}</Typography>
-              <Typography variant="body2">{rev.description}</Typography>
-              {rev.comment && (
-                <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-                  {rev.comment}
-                </Typography>
+              <Typography variant="h6">{rev.rawg_game_name}</Typography>
+              <div style={{textAlign:'left'}}>
+              <Typography variant="body2">Nota: {rev.rating}/10</Typography>
+              <Typography variant="body2">Descrição: {rev.description}</Typography>
+               {rev.comment && (
+              <Typography variant="body2">Comentário: {rev.comment}</Typography>
               )}
-              <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary">
                 Criado em: {new Date(rev.createdAt).toLocaleDateString()}
               </Typography>
+              </div>
+          
             </div>
             <div>
               <Tooltip title="Editar">
@@ -161,6 +164,7 @@ export default function UserReviewsPage() {
           </Paper>
         ))}
       </Stack>
+      </Container>
       {editing && (
         <EditDialog
           review={editing}

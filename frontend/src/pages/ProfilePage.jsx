@@ -25,25 +25,35 @@ export default function ProfilePage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
-  const [password, setPassword] = useState('');
+  const [newPassword, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // Carrega o perfil ao montar
-    getProfile()
-      .then((data) => {
-        setProfile(data);
-        setName(data.name);
-        setEmail(data.email);
-        setLoaded(true);
-      })
-      .catch((err) => {
+useEffect(() => {
+  getProfile()
+    .then((data) => {
+      setProfile(data);
+      setName(data.name);
+      setEmail(data.email);
+      setLoaded(true);
+    })
+    .catch((err) => {
+      if (err.errors && Array.isArray(err.errors)) {
+        setError(err.errors[0].msg); 
+      }
+      else if (err.message) {
         setError(err.message);
-        setLoaded(true);
-      });
-  }, [getProfile]);
+      }
+      else {
+        setError('Erro ao carregar perfil');
+      }
+
+      setLoaded(true); 
+    });
+
+}, [getProfile]);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,8 +64,8 @@ export default function ProfilePage() {
       const updates = {};
       if (name && name !== profile.name) updates.name = name;
       if (email && email !== profile.email) updates.email = email;
-      if (password) {
-        updates.password = password;
+      if (newPassword) {
+        updates.newPassword = newPassword;
         updates.currentPassword = currentPassword;
       }
       if (Object.keys(updates).length === 0) {
@@ -89,7 +99,10 @@ export default function ProfilePage() {
     <Container maxWidth="sm" sx={{ py: 6 }}>
       <Paper variant="outlined" sx={{ p: 4, borderRadius: 2 }}>
         <Typography variant="h5" gutterBottom>
-          Meu perfil
+          MEU PERFIL
+        </Typography>
+         <Typography variant="h8">
+          Atualizar dados
         </Typography>
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
@@ -117,7 +130,7 @@ export default function ProfilePage() {
             <TextField
               label="Nova senha"
               type="password"
-              value={password}
+              value={newPassword}
               onChange={(e) => setPassword(e.target.value)}
             />
             {error && (
