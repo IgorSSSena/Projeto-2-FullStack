@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
+import nodemailer from 'nodemailer';
 
 const router = express.Router();
 
@@ -12,6 +13,33 @@ const router = express.Router();
  * expiration.  The secret is read from the environment or falls back to a
  * default for development.
  */
+
+const transporter = nodemailer.createTransport({
+  service: 'Gmail', 
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS, 
+  },
+});
+
+async function sendResetEmail(user, token) {
+  const resetLink = `http://localhost:5173/reset-password?token=${token}`;
+
+  const mailOptions = {
+    to: user.email,
+    from: process.env.EMAIL_USER,
+    subject: 'Recuperação de Senha',
+    html: `
+      <h1>Solicitação de Recuperação de Senha</h1>
+      <p>Você solicitou a recuperação de senha. Por favor, clique no link abaixo para redefinir sua senha:</p>
+      <a href="${resetLink}">Redefinir Senha</a>
+      <p>Este link expira em 1 hora.</p>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+}
+
 function generateToken(user) {
   return jwt.sign(
     { id: user._id, email: user.email },
@@ -92,8 +120,15 @@ router.post(
     user.resetPasswordToken = hashed;
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1h
     await user.save();
-    // Normally you would send email here.  Return the token for demonstration.
-    return res.json({ message: 'Token de recuperação gerado', token: resetToken });
+   try {
+        await sendResetEmail(user, resetToken);
+        return res.status(200).json({ 
+            message: 'E-mail de recuperação enviado com sucesso.',
+        });
+    } catch (err) {
+        console.error('Erro ao enviar e-mail:', err);
+        return res.status(500).json({ message: 'Erro interno ao enviar e-mail de recuperação.' });
+    }
   }
 );
 

@@ -72,8 +72,11 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ name, email, password }),
     });
     if (!res.ok) {
-      const { message } = await res.json();
-      throw new Error(message || 'Falha no cadastro');
+      const { errors } = await res.json();
+      if (Array.isArray(errors) && errors.length > 0) {
+          throw new Error(errors[0].msg || 'Falha no cadastro');
+      }
+      throw new Error('Falha no cadastro');
     }
     const data = await res.json();
     localStorage.setItem('auth_token', data.token);

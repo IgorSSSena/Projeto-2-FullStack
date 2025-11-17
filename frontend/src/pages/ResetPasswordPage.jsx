@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Container, TextField, Button, Typography, Paper, Stack } from '@mui/material';
-
+import { useSearchParams, useNavigate } from 'react-router-dom';
 /**
  * Página de redefinição de senha.
  *
@@ -9,22 +9,42 @@ import { Container, TextField, Button, Typography, Paper, Stack } from '@mui/mat
  */
 export default function ResetPasswordPage() {
   const { resetPassword } = useAuth();
-  const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const [searchParams] = useSearchParams();
+  const tokenFromUrl = searchParams.get('token');
+
+  useEffect(() => {
+    if (!tokenFromUrl) {
+      setError('Token de recuperação de senha não encontrado na URL.');
+    }
+  }, [tokenFromUrl]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setMessage(null);
     setLoading(true);
+
+    if (!tokenFromUrl) {
+        setError('Token inválido. Verifique o link e tente novamente.');
+        setLoading(false);
+        return;
+    }
+
     try {
-      const data = await resetPassword(token.trim(), password);
+      const data = await resetPassword(tokenFromUrl, password);
       setMessage(data.message || 'Senha redefinida com sucesso');
-      setToken('');
       setPassword('');
+
+      setTimeout(() => {
+        navigate('/login'); 
+      }, 3000);
+      
     } catch (err) {
       setError(err.message);
     } finally {
@@ -40,12 +60,6 @@ export default function ResetPasswordPage() {
         </Typography>
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
-            <TextField
-              label="Token de recuperação"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              required
-            />
             <TextField
               label="Nova senha"
               type="password"
