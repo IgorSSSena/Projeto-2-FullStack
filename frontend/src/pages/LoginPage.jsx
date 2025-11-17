@@ -55,9 +55,20 @@ export default function LoginPage() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 6 }}>
-      <Paper variant="outlined" sx={{ p: 4, borderRadius: 2 }}>
-        <Typography variant="h5" gutterBottom>
-          Entrar na conta
+      <Paper variant="outlined" sx={{ p: 8, borderRadius: 2 }}>
+        <Typography variant="h4" gutterBottom 
+        mb={5}
+          style={{
+            textShadow: `
+      0 0 5px #7B287D,
+      0 0 10px #7B287D,
+      0 0 20px #330C2F,
+      0 0 30px #330C2F
+    `,
+            fontWeight: 600,
+          }}
+        >
+          ENTRAR NA CONTA
         </Typography>
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
@@ -84,10 +95,10 @@ export default function LoginPage() {
               Entrar
             </Button>
             <Typography variant="body2">
-              Não tem conta? <Link to="/signup">Cadastre-se</Link>
+              Não tem conta? <Link to="/signup" style={{color: 'purple'}}>Cadastre-se</Link>
             </Typography>
             <Typography variant="body2">
-              Esqueceu a senha? <Link to="/forgot-password">Recuperar</Link>
+              Esqueceu a senha? <Link to="/forgot-password" style={{color: 'purple'}}>Recuperar</Link>
             </Typography>
         {/* Modal para troca de senha quando o backend sinaliza mustChangePassword */}
         <ChangePasswordModal
