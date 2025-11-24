@@ -6,6 +6,8 @@ import { body, validationResult } from "express-validator";
 import User from "../models/User.js";
 import nodemailer from "nodemailer";
 import auth from "../middleware/auth.js";
+import logger from "../logger.js";
+import { loginLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router();
 
@@ -53,8 +55,8 @@ function generateToken(user) {
 router.post(
   "/register",
   [
-    body("name").notEmpty().withMessage("Nome é obrigatório"),
-    body("email").isEmail().withMessage("Email inválido"),
+    body("name").trim().escape().notEmpty().withMessage("Nome é obrigatório"),
+    body("email").normalizeEmail().isEmail().withMessage("Email inválido"),
     body("password")
       .isLength({ min: 6 })
       .withMessage("Senha deve ter ao menos 6 caracteres"),
@@ -62,16 +64,27 @@ router.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      logger.warn("Tentativa de registro com dados inválidos", {
+        body: req.body,
+        errors: errors.array(),
+      });
+
       return res.status(400).json({ errors: errors.array() });
     }
     const { name, email, password } = req.body;
     const existing = await User.findOne({ email });
     if (existing) {
+      logger.warn("Tentativa de registro com email já cadastrado", { email });
       return res.status(400).json({ message: "Email já cadastrado" });
     }
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
     const user = await User.create({ name, email, passwordHash });
+
+    logger.info("Usuário registrado com sucesso", {
+      userId: user._id,
+      email: user.email,
+    });
     const token = generateToken(user);
     return res.status(201).json({ token });
   }
@@ -80,24 +93,41 @@ router.post(
 // Login
 router.post(
   "/login",
+  loginLimiter, // <-- faltava essa vírgula aqui
   [
-    body("email").isEmail().withMessage("Email inválido"),
-    body("password").notEmpty().withMessage("Senha é obrigatória"),
+    body("email").normalizeEmail().isEmail().withMessage("Email inválido"),
+
+    body("password").trim().notEmpty().withMessage("Senha é obrigatória"),
   ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      logger.warn("Tentativa de login com dados inválidos", {
+        body: req.body,
+        errors: errors.array(),
+      });
       return res.status(400).json({ errors: errors.array() });
     }
+
     const { email, password } = req.body;
     const user = await User.findOne({ email });
+
     if (!user) {
+      logger.warn("Tentativa de login com email não cadastrado", { email });
       return res.status(400).json({ message: "Credenciais inválidas" });
     }
+
     const match = await bcrypt.compare(password, user.passwordHash);
     if (!match) {
+      logger.warn("Tentativa de login com senha incorreta", { email });
       return res.status(400).json({ message: "Credenciais inválidas" });
     }
+
+    logger.info("Login bem sucedido", {
+      userId: user._id,
+      email: user.email,
+    });
+
     const token = generateToken(user);
     return res.json({ token });
   }
@@ -110,16 +140,21 @@ router.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      logger.warn("Tentativa de recuperação de senha com dados inválidos", {
+        body: req.body,
+        errors: errors.array(),
+      });
       return res.status(400).json({ errors: errors.array() });
     }
     const { email } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
-      return res
-        .status(200)
-        .json({
-          message: "Se o email estiver cadastrado, enviaremos instruções",
-        });
+      logger.info("Tentativa de recuperação para email não cadastrado", {
+        email,
+      });
+      return res.status(200).json({
+        message: "Se o email estiver cadastrado, enviaremos instruções",
+      });
     }
     // Generate reset token
     const resetToken = crypto.randomBytes(20).toString("hex");
@@ -129,6 +164,10 @@ router.post(
     await user.save();
     try {
       await sendResetEmail(user, resetToken);
+      logger.info("E-mail de recuperação de senha enviado", {
+        userId: user._id,
+        email: user.email,
+      });
       return res.status(200).json({
         message: "E-mail de recuperação enviado com sucesso.",
       });
@@ -153,6 +192,10 @@ router.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      logger.warn("Tentativa de reset de senha com dados inválidos", {
+        body: req.body,
+        errors: errors.array(),
+      });
       return res.status(400).json({ errors: errors.array() });
     }
     const { token, password } = req.body;
@@ -162,6 +205,9 @@ router.post(
       resetPasswordExpires: { $gt: Date.now() },
     });
     if (!user) {
+      logger.warn("Tentativa de reset com token inválido ou expirado", {
+        token,
+      });
       return res.status(400).json({ message: "Token inválido ou expirado" });
     }
     const salt = await bcrypt.genSalt(10);
@@ -169,6 +215,11 @@ router.post(
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
+
+    logger.info("Senha resetada com sucesso", {
+      userId: user._id,
+      email: user.email,
+    });
     return res.json({ message: "Senha atualizada com sucesso" });
   }
 );
@@ -178,12 +229,23 @@ router.get("/me", auth, async (req, res) => {
   try {
     const user = await User.findById(req.userId).select("-passwordHash");
     if (!user) {
+      logger.warn("Usuário não encontrado ao buscar /me", {
+        userId: req.userId,
+      });
       return res.status(404).json({ message: "Usuário não encontrado" });
     }
 
+    logger.info("Dados de usuário retornados em /me", {
+      userId: user._id,
+    });
+
     return res.json(user);
   } catch (err) {
-    console.error("Erro ao buscar usuário:", err);
+    logger.error("Erro ao buscar usuário em /me", {
+      error: err.message,
+      stack: err.stack,
+      userId: req.userId,
+    });
     return res.status(500).json({ message: "Erro interno do servidor" });
   }
 });
@@ -206,6 +268,11 @@ router.put(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      logger.warn("Tentativa de update de usuário com dados inválidos", {
+        userId: req.userId,
+        body: req.body,
+        errors: errors.array(),
+      });
       return res.status(400).json({ errors: errors.array() });
     }
 

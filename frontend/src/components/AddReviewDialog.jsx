@@ -27,7 +27,7 @@ export default function AddReviewDialog({ game, open, onClose, onSubmitted }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
+  const API_BASE = import.meta.env.VITE_API_BASE || "https://localhost:3000";
 
   const handleSubmit = async () => {
     if (!game) return;

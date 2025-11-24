@@ -1,0 +1,17 @@
+{"level":"info","maxPoolSize":10,"message":"MongoDB conectado com sucesso","timestamp":"2025-11-24T20:29:45.263Z"}
+{"level":"info","message":"Servidor HTTPS rodando em https://localhost:3000","timestamp":"2025-11-24T20:29:45.270Z"}
+{"level":"warn","message":"Rota não encontrada","method":"GET","timestamp":"2025-11-24T20:44:37.950Z","url":"/"}
+{"level":"warn","message":"Rota não encontrada","method":"GET","timestamp":"2025-11-24T20:44:38.029Z","url":"/.well-known/appspecific/com.chrome.devtools.json"}
+{"level":"warn","message":"Rota não encontrada","method":"GET","timestamp":"2025-11-24T20:44:38.462Z","url":"/favicon.ico"}
+{"email":"igorssdasdac@cac.com","level":"info","message":"Usuário registrado com sucesso","timestamp":"2025-11-24T20:48:08.453Z","userId":"6924c4880934be7ae407b3f0"}
+{"level":"info","message":"Dados de usuário retornados em /me","timestamp":"2025-11-24T20:48:15.463Z","userId":"6924c4880934be7ae407b3f0"}
+{"level":"info","message":"Dados de usuário retornados em /me","timestamp":"2025-11-24T20:48:15.482Z","userId":"6924c4880934be7ae407b3f0"}
+{"level":"info","message":"Dados de usuário retornados em /me","timestamp":"2025-11-24T20:48:19.392Z","userId":"6924c4880934be7ae407b3f0"}
+{"level":"info","message":"Dados de usuário retornados em /me","timestamp":"2025-11-24T20:48:19.413Z","userId":"6924c4880934be7ae407b3f0"}
+{"level":"info","message":"Dados de usuário retornados em /me","timestamp":"2025-11-24T20:48:42.789Z","userId":"6924c4880934be7ae407b3f0"}
+{"level":"info","message":"Dados de usuário retornados em /me","timestamp":"2025-11-24T20:48:42.810Z","userId":"6924c4880934be7ae407b3f0"}
+{"level":"info","message":"Dados de usuário retornados em /me","timestamp":"2025-11-24T20:50:01.196Z","userId":"6924c4880934be7ae407b3f0"}
+{"level":"info","message":"Dados de usuário retornados em /me","timestamp":"2025-11-24T20:50:01.218Z","userId":"6924c4880934be7ae407b3f0"}
+{"email":"igorssena22@gmail.com","level":"warn","message":"Tentativa de login com email não cadastrado","timestamp":"2025-11-24T20:51:12.661Z"}
+{"email":"igorssena22@gmail.com","level":"warn","message":"Tentativa de login com email não cadastrado","timestamp":"2025-11-24T20:51:19.776Z"}
+{"email":"igorssena22@gmail.com","level":"warn","message":"Tentativa de login com email não cadastrado","timestamp":"2025-11-24T20:51:20.315Z"}

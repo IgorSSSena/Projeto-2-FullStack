@@ -2,6 +2,7 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import Review from '../models/Review.js';
 import auth from '../middleware/auth.js';
+import { cacheMiddleware } from '../middleware/cache.js';
 
 const router = express.Router();
 
@@ -11,9 +12,10 @@ const router = express.Router();
  * parameters allow filtering by game name or slug.  Results are sorted
  * descending by creation date.
  */
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, cacheMiddleware(30 * 1000), async (req, res) => {
   const { search } = req.query;
   const criteria = { userId: req.userId };
+
   if (search) {
     criteria.$or = [
       { rawg_game_name: { $regex: search, $options: 'i' } },
@@ -33,11 +35,29 @@ router.post(
   '/',
   auth,
   [
-    body('rawg_game_id').isInt().withMessage('ID do jogo inválido'),
-    body('rawg_game_slug').notEmpty().withMessage('Slug é obrigatório'),
-    body('rawg_game_name').notEmpty().withMessage('Nome do jogo é obrigatório'),
-    body('rating').isInt({ min: 1, max: 10 }).withMessage('Nota deve ser entre 1 e 10'),
-    body('description').notEmpty().withMessage('Descrição é obrigatória'),
+    body('rawg_game_id')
+      .toInt()
+      .isInt()
+      .withMessage('ID do jogo inválido'),
+    body('rawg_game_slug')
+      .trim()
+      .escape()
+      .notEmpty()
+      .withMessage('Slug é obrigatório'),
+    body('rawg_game_name')
+      .trim()
+      .escape()
+      .notEmpty()
+      .withMessage('Nome do jogo é obrigatório'),
+    body('rating')
+      .toInt()
+      .isInt({ min: 1, max: 10 })
+      .withMessage('Nota deve ser entre 1 e 10'),
+    body('description')
+      .trim()
+      .escape()
+      .notEmpty()
+      .withMessage('Descrição é obrigatória'),
   ],
   async (req, res) => {
     const errors = validationResult(req);

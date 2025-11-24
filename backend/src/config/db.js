@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import logger from '../logger.js'; // vamos criar esse arquivo no próximo passo
 
 dotenv.config();
 
 /**
- * Connects to MongoDB using the URI defined in the environment variables.  A single
- * connection is shared throughout the application.  The function logs the
- * connection status to aid troubleshooting.
+ * Conecta no MongoDB usando um pool de conexões compartilhado.
+ * maxPoolSize controla quantas conexões simultâneas podem existir.
  */
 export async function connectDB() {
   const uri = process.env.MONGODB_URI;
@@ -17,10 +17,11 @@ export async function connectDB() {
     await mongoose.connect(uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      maxPoolSize: 10, // <- pool de conexões
     });
-    console.log('MongoDB connected');
+    logger.info('MongoDB conectado com sucesso', { maxPoolSize: 10 });
   } catch (err) {
-    console.error('MongoDB connection error:', err.message);
+    logger.error('Erro de conexão MongoDB', { error: err.message });
     process.exit(1);
   }
 }
